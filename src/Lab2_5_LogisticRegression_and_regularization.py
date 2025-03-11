@@ -7,7 +7,9 @@ class LogisticRegressor:
 
         Attributes:
         - weights (np.ndarray): A placeholder for the weights of the model.
+                                These will be initialized in the training phase.
         - bias (float): A placeholder for the bias of the model.
+                        This will also be initialized in the training phase.
         """
         self.weights = None
         self.bias = None
@@ -26,48 +28,74 @@ class LogisticRegressor:
     ):
         """
         Fits the logistic regression model to the data using gradient descent.
+
+        This method initializes the model's weights and bias, then iteratively updates these parameters by
+        moving in the direction of the negative gradient of the loss function (computed using the
+        log_likelihood method).
+
+        The regularization terms are added to the gradient of the loss function as follows:
+
+        - No regularization: The standard gradient descent updates are applied without any modification.
+
+        - L1 (Lasso) regularization: Adds a term to the gradient that penalizes the absolute value of
+            the weights, encouraging sparsity.
+
+        - L2 (Ridge) regularization: Adds a term to the gradient that penalizes the square of the weights,
+            discouraging large weights.
+
+        - ElasticNet regularization: Combines L1 and L2 penalties.
+
+        Parameters:
+        - X (np.ndarray): The input features, with shape (m, n), where m is the number of examples and n is
+                            the number of features.
+        - y (np.ndarray): The true labels of the data, with shape (m,).
+        - learning_rate (float): The step size at each iteration while moving toward a minimum of the
+                            loss function.
+        - num_iterations (int): The number of iterations for which the optimization algorithm should run.
+        - penalty (str): Type of regularization (None, 'lasso', 'ridge', 'elasticnet'). Default is None.
+        - l1_ratio (float): The Elastic Net mixing parameter, with 0 <= l1_ratio <= 1.
+        - C (float): Inverse of regularization strength; must be a positive float.
+        - verbose (bool): Print loss every print_every iterations.
+        - print_every (int): Period of number of iterations to show the loss.
         """
-        m, n = X.shape  # m: número de muestras, n: número de features
-
-        # 1) Inicializamos pesos y bias en cero
+        m, n = X.shape
+        
+        # Initialize parameters
         self.weights = np.zeros(n)
-        self.bias = 0.0
+        self.bias = 0
 
-        # 2) Iteramos en gradient descent
         for i in range(num_iterations):
-            # a) Cálculo del logit y de la probabilidad
+            # Compute logits and probabilities
             z = np.dot(X, self.weights) + self.bias
             y_hat = self.sigmoid(z)
 
-            # b) Cálculo de la función de pérdida (neg log-likelihood)
+            # Compute loss
             loss = self.log_likelihood(y, y_hat)
-
-            # Verbose
+            
             if verbose and i % print_every == 0:
                 print(f"Iteration {i}: Loss {loss}")
 
-            # c) Gradientes sin regularización
+            # Compute gradients
             error = y_hat - y
             dw = (1/m) * np.dot(X.T, error)
             db = (1/m) * np.sum(error)
 
-            # d) Añadimos la contribución de la regularización (solo a dw)
+            # Apply regularization
             if penalty == "lasso":
-                dw = self.lasso_regularization(dw, m, C)
+                dw = self.lasso_regularization(dw, C, m)
             elif penalty == "ridge":
-                dw = self.ridge_regularization(dw, m, C)
+                dw = self.ridge_regularization(dw, C, m)
             elif penalty == "elasticnet":
-                dw = self.elasticnet_regularization(dw, m, C, l1_ratio)
+                dw = self.elasticnet_regularization(dw, C, m, l1_ratio)
 
-            # e) Actualización de parámetros
+            # Update weights and bias
             self.weights -= learning_rate * dw
-            self.bias   -= learning_rate * db
+            self.bias -= learning_rate * db
 
     def predict_proba(self, X):
         """
         Predicts probability estimates for the positive class for each sample in X.
         """
-        # Forma 1: Cálculo directo
         z = np.dot(X, self.weights) + self.bias
         return self.sigmoid(z)
 

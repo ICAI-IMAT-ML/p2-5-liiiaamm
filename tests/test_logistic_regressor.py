@@ -178,7 +178,7 @@ def test_sigmoid():
     assert np.all((results >= 0) & (results <= 1))
 
 
-def test_maximum_likelihood():
+def log_likelihood():
     """Test the maximum likelihood loss calculation"""
     y_true = np.array([0, 1, 1, 0])
     y_pred = np.array([0.1, 0.9, 0.8, 0.2])
